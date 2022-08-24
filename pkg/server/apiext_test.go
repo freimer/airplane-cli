@@ -73,7 +73,7 @@ func TestExecute(t *testing.T) {
 		"param2": "b",
 	}
 
-	runConfig := dev.LocalRunConfig{
+	executionConfig := dev.ExecutionConfig{
 		ID:   runID,
 		Name: "My Task",
 		Root: cliConfig,
@@ -90,7 +90,7 @@ func TestExecute(t *testing.T) {
 		Resources:   map[string]resources.Resource{},
 		LogBroker:   logBroker,
 	}
-	mockExecutor.On("Execute", mock.Anything, runConfig).Return(nil)
+	mockExecutor.On("Execute", mock.Anything, executionConfig).Return(nil)
 
 	body := h.POST("/v0/tasks/execute").
 		WithJSON(ExecuteTaskRequest{
@@ -101,7 +101,7 @@ func TestExecute(t *testing.T) {
 		Expect().
 		Status(http.StatusOK).Body()
 
-	mockExecutor.AssertCalled(t, "Execute", mock.Anything, runConfig)
+	mockExecutor.AssertCalled(t, "Execute", mock.Anything, executionConfig)
 
 	var resp LocalRun
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
@@ -173,7 +173,7 @@ func TestExecuteBuiltin(t *testing.T) {
 		"transactionMode": "auto",
 	}
 
-	runConfig := dev.LocalRunConfig{
+	runConfig := dev.ExecutionConfig{
 		ID:          runID,
 		Root:        cliConfig,
 		ParamValues: paramValues,

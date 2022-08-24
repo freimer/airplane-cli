@@ -12,7 +12,7 @@ type MockExecutor struct {
 	mock.Mock
 }
 
-func (m *MockExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
+func (m *MockExecutor) Execute(ctx context.Context, config ExecutionConfig) (api.Outputs, error) {
 	args := m.Called(ctx, config)
 	return api.Outputs{}, args.Error(0)
 }

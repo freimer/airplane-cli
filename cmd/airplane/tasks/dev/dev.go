@@ -234,7 +234,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		return err
 	}
 
-	localRunConfig := dev.LocalRunConfig{
+	executionConfig := dev.ExecutionConfig{
 		ID:          server.GenerateRunID(),
 		Name:        taskConfig.Def.GetName(),
 		Kind:        kind,
@@ -248,7 +248,7 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 		Env:         devConfig.Env,
 		Resources:   resources,
 	}
-	_, err = localExecutor.Execute(ctx, localRunConfig)
+	_, err = localExecutor.Execute(ctx, executionConfig)
 	if err != nil {
 		return errors.Wrap(err, "executing task")
 	}

@@ -92,7 +92,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 	var parameters libapi.Parameters
 	start := time.Now()
 	if isBuiltin || ok {
-		runConfig := dev.LocalRunConfig{
+		executionConfig := dev.ExecutionConfig{
 			ID:          runID,
 			ParamValues: req.ParamValues,
 			Port:        state.port,
@@ -132,10 +132,10 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			if err != nil {
 				return LocalRun{}, err
 			}
-			runConfig.Kind = kind
-			runConfig.KindOptions = kindOptions
-			runConfig.Name = localTaskConfig.Def.GetName()
-			runConfig.File = localTaskConfig.TaskEntrypoint
+			executionConfig.Kind = kind
+			executionConfig.KindOptions = kindOptions
+			executionConfig.Name = localTaskConfig.Def.GetName()
+			executionConfig.File = localTaskConfig.TaskEntrypoint
 			resourceAttachments = localTaskConfig.Def.GetResourceAttachments()
 			parameters = localTaskConfig.Def.GetParameters()
 
@@ -147,7 +147,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 		if err != nil {
 			return LocalRun{}, errors.Wrap(err, "generating alias to resource map")
 		}
-		runConfig.Resources = resources
+		executionConfig.Resources = resources
 		run.RunID = runID
 		run.CreatedAt = start
 		run.ParamValues = req.ParamValues
@@ -158,7 +158,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 		run.CreatorID = state.cliConfig.ParseTokenForAnalytics().UserID
 		state.runs.add(req.Slug, runID, run)
 
-		outputs, err := state.executor.Execute(ctx, runConfig)
+		outputs, err := state.executor.Execute(ctx, executionConfig)
 
 		completedAt := time.Now()
 		run, _ = state.runs.update(runID, func(run *LocalRun) {

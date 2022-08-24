@@ -35,14 +35,14 @@ import (
 
 // Executor is an interface that contains methods for executing task code.
 type Executor interface {
-	Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error)
+	Execute(ctx context.Context, config ExecutionConfig) (api.Outputs, error)
 }
 
 // LocalExecutor is an implementation of Executor that runs task code locally.
 type LocalExecutor struct{}
 
-// LocalRunConfig is a struct that contains the necessary configs for running a task locally.
-type LocalRunConfig struct {
+// ExecutionConfig is a struct that contains the necessary configs for running a task locally.
+type ExecutionConfig struct {
 	ID          string
 	Name        string
 	Kind        build.TaskKind
@@ -70,7 +70,7 @@ type CmdConfig struct {
 var LogIDGen IDGenerator
 
 // Cmd returns the command needed to execute the task locally
-func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConfig, error) {
+func (l *LocalExecutor) Cmd(ctx context.Context, config ExecutionConfig) (CmdConfig, error) {
 	if config.IsBuiltin {
 		builtinClient, err := NewBuiltinClient(goruntime.GOOS, goruntime.GOARCH)
 		if err != nil {
@@ -123,7 +123,7 @@ func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConf
 	}, nil
 }
 
-func (l *LocalExecutor) Execute(ctx context.Context, config LocalRunConfig) (api.Outputs, error) {
+func (l *LocalExecutor) Execute(ctx context.Context, config ExecutionConfig) (api.Outputs, error) {
 	cmdConfig, err := l.Cmd(ctx, config)
 	if cmdConfig.closer != nil {
 		defer cmdConfig.closer.Close()
@@ -246,7 +246,7 @@ func GetKindAndOptions(taskConfig discover.TaskConfig) (build.TaskKind, build.Ki
 	return kind, kindOptions, nil
 }
 
-func scanLogLine(config LocalRunConfig, line string, mu *sync.Mutex, o *ojson.Value, chunks map[string]*strings.Builder) {
+func scanLogLine(config ExecutionConfig, line string, mu *sync.Mutex, o *ojson.Value, chunks map[string]*strings.Builder) {
 	scanForErrors(config.Root, line)
 	mu.Lock()
 	defer mu.Unlock()
@@ -337,7 +337,7 @@ func entrypointFromDefn(file string) (string, error) {
 	return def.GetAbsoluteEntrypoint()
 }
 
-func appendAirplaneEnvVars(env []string, config LocalRunConfig) ([]string, error) {
+func appendAirplaneEnvVars(env []string, config ExecutionConfig) ([]string, error) {
 	env = append(env, fmt.Sprintf("AIRPLANE_API_HOST=http://127.0.0.1:%d", config.Port))
 	env = append(env, "AIRPLANE_RUNTIME=dev")
 	env = append(env, "AIRPLANE_RESOURCES_VERSION=2")
