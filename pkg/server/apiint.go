@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -87,12 +88,26 @@ func GetResourceHandler(ctx context.Context, state *State, r *http.Request) (Get
 func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (libapi.ListResourcesResponse, error) {
 	resources := make([]libapi.Resource, 0, len(state.devConfig.RawResources))
 	for slug, resource := range state.devConfig.Resources {
-		// It doesn't matter what we include in the resource struct, as long as we include the slug - this handler
-		// is only used so that requests to the local dev api server for this endpoint don't error, in particular:
-		// https://github.com/airplanedev/lib/blob/d4c8ed7d1b30095c5cacac2b5c4da8f3ada6378f/pkg/deploy/taskdir/definitions/def_0_3.go#L1081-L1087
+		internalResource, err := conversion.ConvertToInternalResource(resource, state.logger)
+		if err != nil {
+			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
+		}
+		b, err := json.Marshal(internalResource.KindConfig)
+		if err != nil {
+			return libapi.ListResourcesResponse{}, errors.Wrap(err, "creating kind config")
+		}
+		kindConfig := map[string]interface{}{}
+		if err := json.Unmarshal(b, &kindConfig); err != nil {
+			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting json to KindConfig")
+		}
+
 		resources = append(resources, libapi.Resource{
-			Slug: slug,
-			Kind: libapi.ResourceKind(resource.Kind()),
+			ID:                slug,
+			Slug:              slug,
+			Kind:              libapi.ResourceKind(resource.Kind()),
+			KindConfig:        kindConfig,
+			CanUseResource:    true,
+			CanUpdateResource: true,
 		})
 	}
 

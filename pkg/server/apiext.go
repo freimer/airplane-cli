@@ -20,20 +20,24 @@ import (
 )
 
 type LocalRun struct {
-	RunID         string                 `json:"runID"`
-	Status        api.RunStatus          `json:"status"`
-	Outputs       api.Outputs            `json:"outputs"`
-	CreatedAt     time.Time              `json:"createdAt"`
-	CreatorID     string                 `json:"creatorID"`
-	SucceededAt   *time.Time             `json:"succeededAt"`
-	FailedAt      *time.Time             `json:"failedAt"`
-	ParamValues   map[string]interface{} `json:"paramValues"`
-	Parameters    *libapi.Parameters     `json:"parameters"`
-	ParentID      string                 `json:"parentID"`
-	TaskName      string                 `json:"taskName"`
-	Displays      []libapi.Display       `json:"displays"`
-	IsStdAPI      bool                   `json:"isStdAPI"`
-	StdAPIRequest dev.StdAPIRequest      `json:"stdAPIRequest"`
+	RunID       string                 `json:"runID"`
+	Status      api.RunStatus          `json:"status"`
+	Outputs     api.Outputs            `json:"outputs"`
+	CreatedAt   time.Time              `json:"createdAt"`
+	CreatorID   string                 `json:"creatorID"`
+	SucceededAt *time.Time             `json:"succeededAt"`
+	FailedAt    *time.Time             `json:"failedAt"`
+	ParamValues map[string]interface{} `json:"paramValues"`
+	Parameters  *libapi.Parameters     `json:"parameters"`
+	ParentID    string                 `json:"parentID"`
+	TaskName    string                 `json:"taskName"`
+	Displays    []libapi.Display       `json:"displays"`
+	Prompts     []libapi.Prompt        `json:"prompts"`
+
+	Resources map[string]string `json:"resources"`
+
+	IsStdAPI      bool              `json:"isStdAPI"`
+	StdAPIRequest dev.StdAPIRequest `json:"stdAPIRequest"`
 
 	// internal fields
 	LogStore  logs.LogBroker `json:"-"`
@@ -48,6 +52,8 @@ func NewLocalRun() *LocalRun {
 		CreatedAt:   time.Now(),
 		LogBroker:   logs.NewDevLogBroker(),
 		Displays:    []libapi.Display{},
+		Prompts:     []libapi.Prompt{},
+		Resources:   map[string]string{},
 	}
 }
 
@@ -178,6 +184,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			return LocalRun{}, errors.Wrap(err, "generating alias to resource map")
 		}
 		runConfig.Resources = resources
+		run.Resources = resourceAttachments
 		run.RunID = runID
 		run.CreatedAt = start
 		run.ParamValues = req.ParamValues
