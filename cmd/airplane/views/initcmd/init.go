@@ -246,13 +246,19 @@ func addAllPackages(packageJSONDirPath string, useYarn bool) error {
 	if err != nil {
 		return err
 	}
+
+	existingDepNames := make([]string, 0, len(existingDeps))
+	for dep := range existingDeps {
+		existingDepNames = append(existingDepNames, dep)
+	}
+
 	// TODO: Select versions to install instead of installing latest.
 	// Put these in lib and use same ones for airplane views dev.
 	packagesToCheck := []string{"@airplane/views", "react", "react-dom"}
-	packagesToAdd := getPackagesToAdd(packagesToCheck, existingDeps)
+	packagesToAdd := getPackagesToAdd(packagesToCheck, existingDepNames)
 
 	devPackagesToCheck := []string{"@types/react", "@types/react-dom", "typescript"}
-	devPackagesToAdd := getPackagesToAdd(devPackagesToCheck, existingDeps)
+	devPackagesToAdd := getPackagesToAdd(devPackagesToCheck, existingDepNames)
 
 	if len(packagesToAdd) > 0 || len(devPackagesToAdd) > 0 {
 		l.Step("Installing dependencies...")
