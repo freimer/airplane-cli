@@ -106,7 +106,7 @@ func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (l
 		}
 
 		resources = append(resources, libapi.Resource{
-			ID:                slug,
+			ID:                resource.ID(),
 			Slug:              slug,
 			Kind:              libapi.ResourceKind(resource.Kind()),
 			KindConfig:        kindConfig,
