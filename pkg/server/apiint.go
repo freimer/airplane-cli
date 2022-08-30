@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -96,15 +95,10 @@ func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (l
 		if err != nil {
 			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
 		}
-		b, err := json.Marshal(internalResource.KindConfig)
+		kindConfig, err := conversion.ResourceToJSON(internalResource)
 		if err != nil {
-			return libapi.ListResourcesResponse{}, errors.Wrap(err, "creating kind config")
+			return libapi.ListResourcesResponse{}, err
 		}
-		kindConfig := map[string]interface{}{}
-		if err := json.Unmarshal(b, &kindConfig); err != nil {
-			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting json to KindConfig")
-		}
-
 		resources = append(resources, libapi.Resource{
 			ID:                resource.ID(),
 			Slug:              slug,
