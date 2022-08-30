@@ -27,14 +27,16 @@ func TestListResources(t *testing.T) {
 				Resources: map[string]resources.Resource{
 					"db": kinds.PostgresResource{
 						BaseResource: resources.BaseResource{
-							Slug: "db",
 							ID:   "r-1",
+							Slug: "db",
+							Kind: kinds.ResourceKindPostgres,
 						},
 					},
 					"slack": kinds.SlackResource{
 						BaseResource: resources.BaseResource{
-							Slug: "slack",
 							ID:   "r-2",
+							Slug: "slack",
+							Kind: kinds.ResourceKindSlack,
 						},
 					},
 				},
@@ -53,10 +55,12 @@ func TestListResources(t *testing.T) {
 		{
 			Slug: "db",
 			ID:   "r-1",
+			Kind: libapi.ResourceKind(kinds.ResourceKindPostgres),
 		},
 		{
 			Slug: "slack",
 			ID:   "r-2",
+			Kind: libapi.ResourceKind(kinds.ResourceKindSlack),
 		},
 	}
 	for i := range expected {
