@@ -25,11 +25,11 @@ func GenerateAliasToResourceMap(
 	return aliasToResourceMap, nil
 }
 
-// Creates a map of the resource slug to resource ID
-func GenerateResourceSlugToID(resources map[string]resources.Resource) map[string]string {
-	runResources := map[string]string{}
-	for slug, r := range resources {
-		runResources[slug] = r.ID()
+// Creates a map of the resource alias to resource ID
+func GenerateResourceAliasToID(resourceAliases map[string]resources.Resource) map[string]string {
+	resourceAliasToID := map[string]string{}
+	for alias, resource := range resourceAliases {
+		resourceAliasToID[alias] = resource.ID()
 	}
-	return runResources
+	return resourceAliasToID
 }

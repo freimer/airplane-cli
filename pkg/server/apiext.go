@@ -187,7 +187,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 			return LocalRun{}, errors.Wrap(err, "generating alias to resource map")
 		}
 		runConfig.Resources = resources
-		run.Resources = resource.GenerateResourceSlugToID(state.devConfig.Resources)
+		run.Resources = resource.GenerateResourceAliasToID(resources)
 		run.RunID = runID
 		run.CreatedAt = start
 		run.ParamValues = req.ParamValues
