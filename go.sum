@@ -132,8 +132,8 @@ github.com/acomagu/bufpipe v1.0.3/go.mod h1:mxdxdup/WdsKVreO5GpW4+M/1CE2sMG4jeGJ
 github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021 h1:epOU0k9ymss5SvqH10GOBzH57m5AJbiWLx62TZwk748=
 github.com/airplanedev/archiver v1.1.3-0.20210823174045-ee4b23880021/go.mod h1:Dsagf3j6EvFajY16ZIuDnVL64yFCWtvfXE0tfG33w/U=
 github.com/airplanedev/dlog v0.0.0-20210615011719-ca8d3becde5e h1:MeoR75I33g2XHKnTfRE67THlKm6fCoKQ3KcxsElHL4w=
-github.com/airplanedev/lib v0.5.52 h1:cpUnlLtwgFdH9PpsC6h6Ci/Cy831o12ZNJ4IeXLyyiE=
-github.com/airplanedev/lib v0.5.52/go.mod h1:E0UeJo3Z11UK2g1IBThIj3pp9dS9oFJACwB1MbYmtAA=
+github.com/airplanedev/lib v0.5.53 h1:ZZmZF0awHK1xtFBlIlNQDj+BJiawnShfGHkG27TmX/k=
+github.com/airplanedev/lib v0.5.53/go.mod h1:E0UeJo3Z11UK2g1IBThIj3pp9dS9oFJACwB1MbYmtAA=
 github.com/airplanedev/ojson v0.1.0 h1:KpEO5zr/9S2xj38Vijky5MWZQ5l2mtDLUoxkxBPVCoI=
 github.com/airplanedev/ojson v0.1.0/go.mod h1:OinOlkiLgGwp+/RkH/9vVAIs78tP+oku4bt5v+jshoA=
 github.com/airplanedev/path v0.0.1 h1:3xW/3y6gaKmIeBcHqzieMl5RcUubcazzoHblMqvk6W4=

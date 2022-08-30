@@ -33,6 +33,7 @@ type LocalRun struct {
 	Displays    []libapi.Display       `json:"displays"`
 	Prompts     []libapi.Prompt        `json:"prompts"`
 
+	// Map of a run's attached resources: slug to ID
 	Resources map[string]string `json:"resources"`
 
 	IsStdAPI      bool              `json:"isStdAPI"`
