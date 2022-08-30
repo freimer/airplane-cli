@@ -1,7 +1,10 @@
 package resource
 
 import (
+	"encoding/json"
+
 	"github.com/airplanedev/lib/pkg/resources"
+	"github.com/airplanedev/lib/pkg/resources/kind_configs"
 	"github.com/pkg/errors"
 )
 
@@ -32,4 +35,16 @@ func GenerateResourceAliasToID(resourceAliases map[string]resources.Resource) ma
 		resourceAliasToID[alias] = resource.ID()
 	}
 	return resourceAliasToID
+}
+
+func KindConfigToMap(r kind_configs.InternalResource) (map[string]interface{}, error) {
+	b, err := json.Marshal(r.KindConfig)
+	if err != nil {
+		return nil, errors.Wrap(err, "marshaling KindConfig")
+	}
+	kindConfig := map[string]interface{}{}
+	if err := json.Unmarshal(b, &kindConfig); err != nil {
+		return nil, errors.Wrap(err, "unmarshaling KindConfig")
+	}
+	return kindConfig, nil
 }

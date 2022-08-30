@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	res "github.com/airplanedev/cli/pkg/resource"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/conversion"
@@ -96,7 +97,7 @@ func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (l
 		if err != nil {
 			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
 		}
-		kindConfig, err := conversion.InternalToJSON(internalResource)
+		kindConfig, err := res.KindConfigToMap(internalResource)
 		if err != nil {
 			return libapi.ListResourcesResponse{}, err
 		}
