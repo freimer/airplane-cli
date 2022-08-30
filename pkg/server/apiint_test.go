@@ -28,11 +28,13 @@ func TestListResources(t *testing.T) {
 					"db": kinds.PostgresResource{
 						BaseResource: resources.BaseResource{
 							Slug: "db",
+							ID:   "r-1",
 						},
 					},
 					"slack": kinds.SlackResource{
 						BaseResource: resources.BaseResource{
 							Slug: "slack",
+							ID:   "r-2",
 						},
 					},
 				},
@@ -47,14 +49,21 @@ func TestListResources(t *testing.T) {
 	var resp libapi.ListResourcesResponse
 	err := json.Unmarshal([]byte(body.Raw()), &resp)
 	require.NoError(err)
-	require.ElementsMatch([]libapi.Resource{
+	expected := []libapi.Resource{
 		{
 			Slug: "db",
+			ID:   "r-1",
 		},
 		{
 			Slug: "slack",
+			ID:   "r-2",
 		},
-	}, resp.Resources)
+	}
+	for i := range expected {
+		require.Equal(expected[i].Slug, resp.Resources[i].Slug)
+		require.Equal(expected[i].ID, resp.Resources[i].ID)
+		require.Equal(expected[i].Kind, resp.Resources[i].Kind)
+	}
 }
 
 func TestSubmitPrompts(t *testing.T) {
