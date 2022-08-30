@@ -10,6 +10,7 @@ import (
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/conversion"
 	"github.com/airplanedev/lib/pkg/resources/kind_configs"
+
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -95,7 +96,7 @@ func ListResourcesHandler(ctx context.Context, state *State, r *http.Request) (l
 		if err != nil {
 			return libapi.ListResourcesResponse{}, errors.Wrap(err, "converting to internal resource")
 		}
-		kindConfig, err := conversion.ResourceToJSON(internalResource)
+		kindConfig, err := conversion.InternalToJSON(internalResource)
 		if err != nil {
 			return libapi.ListResourcesResponse{}, err
 		}
