@@ -3,6 +3,7 @@ package initcmd
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"path/filepath"
@@ -25,20 +26,21 @@ type config struct {
 	client      *api.Client
 	template    string
 	resetDemoDB bool
+	dev         bool
 }
 
 func New(c *cli.Config) *cobra.Command {
 	var cfg = config{client: c.Client}
 
 	cmd := &cobra.Command{
-		// TODO: switch to init after polishing
-		Use:   "init-dev",
+		Use:   "init",
 		Short: "Initialize a task, view, or template",
 		Example: heredoc.Doc(`
 			$ airplane init --template getting_started
 			$ airplane init --template github.com/airplanedev/templates/getting_started
 		`),
 		PersistentPreRunE: utils.WithParentPersistentPreRunE(func(cmd *cobra.Command, args []string) error {
+			cfg.dev = c.Dev
 			return login.EnsureLoggedIn(cmd.Root().Context(), c)
 		}),
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -54,7 +56,7 @@ func New(c *cli.Config) *cobra.Command {
 }
 
 const taskOption = "Task		Create a SQL query, script, or API call"
-const viewOption = "View		Build a UI"
+const viewOption = "View		Build a custom UI"
 const templateOption = "Template	Clone ready-made tasks and views to start developing faster"
 
 var orderedInitOptions = []string{
@@ -62,6 +64,8 @@ var orderedInitOptions = []string{
 	viewOption,
 	templateOption,
 }
+
+const templateGallery = "https://docs.airplane.dev/templates"
 
 func run(ctx context.Context, cfg config) error {
 	if cfg.resetDemoDB {
@@ -85,6 +89,10 @@ func run(ctx context.Context, cfg config) error {
 		return initFromTemplate(ctx, templates, cfg.template)
 	}
 
+	if !cfg.dev {
+		return taskinit.Run(ctx, taskinit.GetConfig(cfg.client))
+	}
+
 	var selectedInit string
 	if err := survey.AskOne(
 		&survey.Select{
@@ -105,19 +113,8 @@ func run(ctx context.Context, cfg config) error {
 		if err != nil {
 			return err
 		}
-		var templateShortPaths []string
-		for _, t := range templates {
-			templateShortPaths = append(templateShortPaths, strings.TrimPrefix(t.GitHubPath, "github.com/airplanedev/templates/"))
-		}
-		var selectedTemplate string
-		if err := survey.AskOne(
-			&survey.Select{
-				Message: "Which template would you like to initialize?",
-				Options: templateShortPaths,
-				Default: templateShortPaths[0],
-			},
-			&selectedTemplate,
-		); err != nil {
+		selectedTemplate, err := selectTemplate(ctx, templates)
+		if err != nil {
 			return err
 		}
 
@@ -136,12 +133,44 @@ type Template struct {
 	TaskSlugs     []string `json:"taskSlugs"`
 }
 
+func selectTemplate(ctx context.Context, templates []Template) (string, error) {
+	const templateBrowser = "Explore templates in the browser"
+	optionToPath := map[string]string{}
+
+	templateShortPaths := []string{templateBrowser}
+	for _, t := range templates {
+		shortPath := strings.TrimPrefix(t.GitHubPath, "github.com/airplanedev/templates/")
+		option := fmt.Sprintf("%s (%s)", t.Name, shortPath)
+		optionToPath[option] = shortPath
+		templateShortPaths = append(templateShortPaths, option)
+	}
+	var selectedTemplate string
+	for selectedTemplate == "" || selectedTemplate == templateBrowser {
+		if err := survey.AskOne(
+			&survey.Select{
+				Message: "Which template would you like to initialize?",
+				Options: templateShortPaths,
+				Default: templateShortPaths[0],
+			},
+			&selectedTemplate,
+		); err != nil {
+			return "", err
+		}
+
+		if selectedTemplate == templateBrowser {
+			if ok := utils.Open(templateGallery); ok {
+				logger.Log("Something went wrong with opening templates in the browser")
+			}
+		}
+	}
+	return optionToPath[selectedTemplate], nil
+}
+
 func initFromTemplate(ctx context.Context, templates []Template, gitPath string) error {
 	template, err := FindTemplate(templates, gitPath)
 	if err != nil {
 		return err
 	}
-	// TODO: add next steps and add spinner
 	return utils.CopyFromGithubPath(template.GitHubPath)
 }
 

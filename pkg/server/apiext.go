@@ -12,7 +12,6 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resource"
-	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/builtins"
 	"github.com/gorilla/mux"
@@ -78,6 +77,9 @@ func AttachExternalAPIRoutes(r *mux.Router, state *State) {
 
 	r.Handle("/displays/list", Handler(state, ListDisplaysHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/displays/create", HandlerWithBody(state, CreateDisplayHandler)).Methods("POST", "OPTIONS")
+
+	r.Handle("/prompts/get", Handler(state, GetPromptHandler)).Methods("GET", "OPTIONS")
+	r.Handle("/prompts/create", HandlerWithBody(state, CreatePromptHandler)).Methods("POST", "OPTIONS")
 }
 
 type ExecuteTaskRequest struct {
@@ -87,7 +89,7 @@ type ExecuteTaskRequest struct {
 	Resources   map[string]string `json:"resources"`
 }
 
-func getParentID(r *http.Request) (string, error) {
+func getRunIDFromToken(r *http.Request) (string, error) {
 	if token := r.Header.Get("X-Airplane-Token"); token != "" {
 		claims, err := dev.ParseInsecureAirplaneToken(token)
 		if err != nil {
@@ -111,7 +113,7 @@ func ExecuteTaskHandler(ctx context.Context, state *State, r *http.Request, req 
 		run = *NewLocalRun()
 	}
 
-	parentID, err := getParentID(r)
+	parentID, err := getRunIDFromToken(r)
 	if err != nil {
 		return run, err
 	}
@@ -337,7 +339,7 @@ func CreateDisplayHandler(ctx context.Context, state *State, r *http.Request, re
 
 	now := time.Now()
 	display := libapi.Display{
-		ID:        "dsp" + utils.RandomString(10, utils.CharsetLowercaseNumeric),
+		ID:        GenerateID("dsp"),
 		RunID:     runID,
 		Kind:      req.Display.Kind,
 		CreatedAt: now,
@@ -368,4 +370,69 @@ func CreateDisplayHandler(ctx context.Context, state *State, r *http.Request, re
 	return CreateDisplayResponse{
 		Display: display,
 	}, nil
+}
+
+type PromptReponse struct {
+	ID string `json:"id"`
+}
+
+func CreatePromptHandler(ctx context.Context, state *State, r *http.Request, req libapi.Prompt) (PromptReponse, error) {
+	runID, err := getRunIDFromToken(r)
+	if err != nil {
+		return PromptReponse{}, err
+	}
+	if runID == "" {
+		return PromptReponse{}, errors.Errorf("expected runID from airplane token: %s", err.Error())
+	}
+
+	if req.Values == nil {
+		req.Values = map[string]interface{}{}
+	}
+
+	prompt := libapi.Prompt{
+		ID:        GenerateID("pmt"),
+		RunID:     runID,
+		Schema:    req.Schema,
+		Values:    req.Values,
+		CreatedAt: time.Now(),
+	}
+
+	if _, err := state.runs.update(runID, func(run *LocalRun) error {
+		run.Prompts = append(run.Prompts, prompt)
+		return nil
+	}); err != nil {
+		return PromptReponse{}, err
+	}
+
+	return PromptReponse{ID: prompt.ID}, nil
+}
+
+type GetPromptResponse struct {
+	Prompt libapi.Prompt `json:"prompt"`
+}
+
+func GetPromptHandler(ctx context.Context, state *State, r *http.Request) (GetPromptResponse, error) {
+	promptID := r.URL.Query().Get("id")
+	if promptID == "" {
+		return GetPromptResponse{}, errors.New("id is required")
+	}
+	runID, err := getRunIDFromToken(r)
+	if err != nil {
+		return GetPromptResponse{}, err
+	}
+	if runID == "" {
+		return GetPromptResponse{}, errors.Errorf("expected runID from airplane token")
+	}
+
+	run, ok := state.runs.get(runID)
+	if !ok {
+		return GetPromptResponse{}, errors.New("run not found")
+	}
+
+	for _, p := range run.Prompts {
+		if p.ID == promptID {
+			return GetPromptResponse{Prompt: p}, nil
+		}
+	}
+	return GetPromptResponse{}, errors.New("prompt not found")
 }

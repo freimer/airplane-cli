@@ -17,7 +17,6 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/tasks/deploy"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev"
 	"github.com/airplanedev/cli/cmd/airplane/tasks/execute"
-	taskinit "github.com/airplanedev/cli/cmd/airplane/tasks/initcmd"
 	"github.com/airplanedev/cli/cmd/airplane/version"
 	"github.com/airplanedev/cli/cmd/airplane/views"
 	"github.com/airplanedev/cli/pkg/analytics"
@@ -113,8 +112,6 @@ func New() *cobra.Command {
 	cmd.AddCommand(initcmd.New(cfg))
 
 	// Aliases for popular namespaced commands:
-	// TODO: Remove taskinit after we switch over to new init
-	cmd.AddCommand(taskinit.New(cfg))
 	cmd.AddCommand(deploy.New(cfg))
 	cmd.AddCommand(dev.New(cfg))
 	cmd.AddCommand(execute.New(cfg))

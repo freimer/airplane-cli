@@ -233,5 +233,9 @@ func LogsHandler(ctx context.Context, state *State, r *http.Request, flush func(
 }
 
 func GenerateRunID() string {
-	return "run" + utils.RandomString(10, utils.CharsetLowercaseNumeric)
+	return GenerateID("run")
+}
+
+func GenerateID(prefix string) string {
+	return prefix + utils.RandomString(10, utils.CharsetLowercaseNumeric)
 }

@@ -104,7 +104,15 @@ func CopyFromGithubPath(gitPath string) error {
 				return err
 			}
 			logger.Step("Finished installing dependencies")
-			return nil
+		}
+		readmePath := filepath.Join(directory, "README.md")
+		if fsx.Exists(readmePath) {
+			logger.Log(logger.Gray(fmt.Sprintf("\nPreviewing %s:", readmePath)))
+			readme, err := os.ReadFile(readmePath)
+			if err != nil {
+				return errors.Wrap(err, "reading README")
+			}
+			logger.Log(string(readme))
 		}
 	} else {
 		cwd, err := os.Getwd()
