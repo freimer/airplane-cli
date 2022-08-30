@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"sort"
 	"testing"
 	"time"
 
@@ -63,6 +64,12 @@ func TestListResources(t *testing.T) {
 			Kind: libapi.ResourceKind(kinds.ResourceKindSlack),
 		},
 	}
+
+	// sort so we can compare- since resources are stored as a map
+	sort.Slice(resp.Resources, func(i, j int) bool {
+		return resp.Resources[i].ID < resp.Resources[j].ID
+	})
+
 	for i := range expected {
 		require.Equal(expected[i].Slug, resp.Resources[i].Slug)
 		require.Equal(expected[i].ID, resp.Resources[i].ID)
