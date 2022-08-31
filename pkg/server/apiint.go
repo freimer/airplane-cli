@@ -7,11 +7,13 @@ import (
 	"time"
 
 	res "github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/cli/pkg/utils"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/resources/conversion"
 	"github.com/airplanedev/lib/pkg/resources/kind_configs"
 	"github.com/gorilla/mux"
+	"github.com/gosimple/slug"
 	"github.com/pkg/errors"
 )
 
@@ -45,8 +47,28 @@ type CreateResourceResponse struct {
 
 // CreateResourceHandler handles requests to the /v0/resources/get endpoint
 func CreateResourceHandler(ctx context.Context, state *State, r *http.Request, req CreateResourceRequest) (CreateResourceResponse, error) {
+	resourceSlug := req.Slug
+	var err error
+	if resourceSlug == "" {
+		if resourceSlug, err = utils.GetUniqueSlug(utils.GetUniqueSlugRequest{
+			Slug: slug.Make(req.Name),
+			SlugExists: func(slug string) (bool, error) {
+				_, ok := state.devConfig.Resources[slug]
+				return ok, nil
+			},
+		}); err != nil {
+			return CreateResourceResponse{}, errors.New("Could not generate unique resource slug")
+		}
+	} else {
+		if _, ok := state.devConfig.Resources[resourceSlug]; ok {
+			return CreateResourceResponse{}, errors.Errorf("Resource with slug %s already exists", resourceSlug)
+		}
+	}
+
+	id := fmt.Sprintf("res-%s", resourceSlug)
 	internalResource := kind_configs.InternalResource{
-		Slug:       req.Slug,
+		ID:         id,
+		Slug:       resourceSlug,
 		Kind:       req.Kind,
 		Name:       req.Name,
 		KindConfig: req.KindConfig,
@@ -57,11 +79,11 @@ func CreateResourceHandler(ctx context.Context, state *State, r *http.Request, r
 		return CreateResourceResponse{}, errors.Wrap(err, "converting to external resource")
 	}
 
-	if err := state.devConfig.SetResource(req.Slug, resource); err != nil {
+	if err := state.devConfig.SetResource(resourceSlug, resource); err != nil {
 		return CreateResourceResponse{}, errors.Wrap(err, "setting resource")
 	}
 
-	return CreateResourceResponse{ResourceID: fmt.Sprintf("res-%s", req.Slug)}, nil
+	return CreateResourceResponse{ResourceID: id}, nil
 }
 
 type GetResourceResponse struct {

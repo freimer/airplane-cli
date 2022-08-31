@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/airplanedev/lib/pkg/deploy/taskdir"
@@ -70,4 +71,29 @@ func slugFromScript(file string) (string, error) {
 	}
 
 	return slug, nil
+}
+
+type GetUniqueSlugRequest struct {
+	Slug        string
+	SlugExists  func(string) (bool, error)
+	MaxAttempts int
+}
+
+func GetUniqueSlug(req GetUniqueSlugRequest) (string, error) {
+	if req.MaxAttempts == 0 {
+		req.MaxAttempts = 10
+	}
+
+	// Make sure provided slug is actually a slug.
+	baseSlug := MakeSlug(req.Slug)
+	slug := baseSlug
+	for attempts := 0; attempts < req.MaxAttempts; attempts += 1 {
+		if exists, err := req.SlugExists(slug); err != nil {
+			return "", err
+		} else if !exists {
+			return slug, nil
+		}
+		slug = fmt.Sprintf("%s_%s", baseSlug, RandomString(3, CharsetAlphaLowercase))
+	}
+	return "", errors.New("Too many attempts at getting a unique slug")
 }

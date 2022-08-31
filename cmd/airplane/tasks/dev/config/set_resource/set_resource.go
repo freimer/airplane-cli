@@ -144,17 +144,18 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	devConfig := cfg.devCLI.DevConfig
-	// Remove resource with the same slug if it exists.
-	if err := devConfig.RemoveResource(cfg.slug); err != nil {
-		return errors.Wrap(err, "removing resource from dev config file")
+	resource, err := resources.GetResource(kind, serializedResource)
+	if err != nil {
+		return errors.Wrap(err, "unable to convert resource map to resource")
+	}
+	if err := devConfig.SetResource(cfg.slug, resource); err != nil {
+		return errors.Wrap(err, "setting resource in dev config file")
 	}
 	devConfig.RawResources = append(devConfig.RawResources, serializedResource)
 
 	if err := conf.WriteDevConfig(devConfig); err != nil {
 		return err
 	}
-
-	logger.Log("Successfully wrote resource `%s` of kind `%s` to dev config file.", cfg.slug, cfg.kind)
 
 	encodedResource, err := json.MarshalIndent(serializedResource, "", "  ")
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/utils"
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/pkg/errors"
@@ -25,6 +26,16 @@ type DevConfig struct {
 	Path string `json:"-" yaml:"-"`
 	// Resources is a mapping from slug to external resource.
 	Resources map[string]resources.Resource `json:"-" yaml:"-"`
+}
+
+// NewDevConfig returns a default dev config.
+func NewDevConfig() *DevConfig {
+	return &DevConfig{
+		Env:          map[string]string{},
+		RawResources: []map[string]interface{}{},
+		Resources:    map[string]resources.Resource{},
+		Path:         DefaultDevConfigFileName,
+	}
 }
 
 func (d *DevConfig) updateRawResources() error {
@@ -59,6 +70,7 @@ func (d *DevConfig) SetResource(slug string, resource resources.Resource) error 
 	if err := WriteDevConfig(d); err != nil {
 		return errors.Wrap(err, "writing dev config")
 	}
+	logger.Log("Wrote resource %s to dev config file at %s", slug, d.Path)
 
 	return nil
 }

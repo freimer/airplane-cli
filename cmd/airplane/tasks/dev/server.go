@@ -24,10 +24,11 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
 
 	localExecutor := &dev.LocalExecutor{}
-	devConfig := &conf.DevConfig{}
+	var devConfig *conf.DevConfig
 	var err error
-
-	if cfg.devConfigPath != "" {
+	if cfg.devConfigPath == "" {
+		devConfig = conf.NewDevConfig()
+	} else {
 		devConfig, err = conf.ReadDevConfig(cfg.devConfigPath)
 		if err != nil {
 			return errors.Wrap(err, "loading in dev config file")

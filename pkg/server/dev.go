@@ -167,7 +167,7 @@ func StartViewHandler(ctx context.Context, state *State, r *http.Request) (Start
 		return StartViewResponse{}, err
 	}
 
-	vd, err := viewdir.NewViewDirectory(ctx, state.cliConfig, rootDir, viewConfig.Root, state.envSlug)
+	vd, err := viewdir.NewViewDirectory(ctx, state.cliConfig, rootDir, viewConfig.Def.DefnFilePath, state.envSlug)
 	if err != nil {
 		return StartViewResponse{}, err
 	}

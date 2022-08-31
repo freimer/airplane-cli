@@ -10,6 +10,7 @@ var seededRand = rand.New(
 	rand.NewSource(time.Now().UnixNano()))
 var seededRandMu sync.Mutex
 
+const CharsetAlphaLowercase = "abcdefghijklmnopqrstuvwxyz"
 const CharsetLowercaseNumeric = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 // RandomString returns a random string of given length using the given charset
