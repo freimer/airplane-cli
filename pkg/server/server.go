@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
@@ -65,12 +66,13 @@ func newRouter(state *State) *mux.Router {
 }
 
 type Options struct {
-	CLI       *cli.Config
-	EnvSlug   string
-	Port      int
-	Executor  dev.Executor
-	DevConfig *conf.DevConfig
-	Dir       string
+	CLI         *cli.Config
+	LocalClient *api.Client
+	EnvSlug     string
+	Port        int
+	Executor    dev.Executor
+	DevConfig   *conf.DevConfig
+	Dir         string
 }
 
 // newServer returns a new HTTP server with API routes
@@ -89,14 +91,15 @@ func newServer(router *mux.Router, state *State) *Server {
 // Start starts and returns a new instance of the Airplane API server.
 func Start(opts Options) (*Server, error) {
 	state := &State{
-		cliConfig: opts.CLI,
-		envSlug:   opts.EnvSlug,
-		executor:  opts.Executor,
-		port:      opts.Port,
-		runs:      NewRunStore(),
-		devConfig: opts.DevConfig,
-		dir:       opts.Dir,
-		logger:    logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
+		cliConfig:   opts.CLI,
+		envSlug:     opts.EnvSlug,
+		executor:    opts.Executor,
+		port:        opts.Port,
+		runs:        NewRunStore(),
+		localClient: opts.LocalClient,
+		devConfig:   opts.DevConfig,
+		dir:         opts.Dir,
+		logger:      logger.NewStdErrLogger(logger.StdErrLoggerOpts{}),
 	}
 
 	r := newRouter(state)

@@ -4,6 +4,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
@@ -13,7 +14,8 @@ import (
 )
 
 type State struct {
-	cliConfig *cli.Config
+	cliConfig   *cli.Config
+	localClient *api.Client
 	// Directory from which tasks and views were discovered
 	dir      string
 	envSlug  string

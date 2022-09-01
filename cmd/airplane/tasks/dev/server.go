@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
@@ -18,10 +19,16 @@ import (
 )
 
 func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
-	appUrl := cfg.root.Client.AppURL()
 	// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
-	// local dev, we send requests to a locally running api server, and so we override the host here.
-	cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
+	// local dev, we send requests to a locally running api server, and so we create an api client that hits localhost
+	// here.
+	localClient := &api.Client{
+		Host:   fmt.Sprintf("127.0.0.1:%d", cfg.port),
+		Token:  cfg.root.Client.Token,
+		Source: cfg.root.Client.Source,
+		APIKey: cfg.root.Client.APIKey,
+		TeamID: cfg.root.Client.TeamID,
+	}
 
 	localExecutor := &dev.LocalExecutor{}
 	var devConfig *conf.DevConfig
@@ -42,12 +49,13 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 		return errors.Wrap(err, "getting absolute directory of dev server root")
 	}
 	apiServer, err := server.Start(server.Options{
-		CLI:       cfg.root,
-		EnvSlug:   cfg.envSlug,
-		Executor:  localExecutor,
-		Port:      cfg.port,
-		DevConfig: devConfig,
-		Dir:       absoluteDir,
+		CLI:         cfg.root,
+		LocalClient: localClient,
+		DevConfig:   devConfig,
+		EnvSlug:     cfg.envSlug,
+		Executor:    localExecutor,
+		Port:        cfg.port,
+		Dir:         absoluteDir,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev server")
@@ -62,16 +70,16 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{
 			&discover.DefnDiscoverer{
-				Client: cfg.root.Client,
+				Client: localClient,
 			},
 			&discover.CodeTaskDiscoverer{
-				Client: cfg.root.Client,
+				Client: localClient,
 			},
 		},
 		EnvSlug: cfg.envSlug,
-		Client:  cfg.root.Client,
+		Client:  localClient,
 	}
-	d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: cfg.root.Client})
+	d.ViewDiscoverers = append(d.ViewDiscoverers, &discover.ViewDefnDiscoverer{Client: localClient})
 
 	taskConfigs, viewConfigs, err := d.Discover(ctx, cfg.fileOrDir)
 	if err != nil {
@@ -123,7 +131,7 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	logger.Log("")
-	logger.Log("Visit https://%s/editor?host=http://localhost:%d for a development UI.", appUrl.Host, cfg.port)
+	logger.Log("Visit %s/editor?host=http://localhost:%d for a development UI.", cfg.root.Client.AppURL(), cfg.port)
 	logger.Log("[Ctrl+C] to shutdown the local dev server.")
 
 	// Wait for termination signal (e.g. Ctrl+C)
