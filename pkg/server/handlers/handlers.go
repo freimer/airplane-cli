@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/airplanedev/cli/pkg/logger"
+	"github.com/airplanedev/cli/pkg/server/errorlib"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/pkg/errors"
 )
@@ -98,7 +99,13 @@ func HandlerSSE[Resp any](state *state.State, f func(ctx context.Context, state 
 // WriteHTTPError writes an error to response and optionally logs it
 func WriteHTTPError(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusInternalServerError)
+
+	var e errorlib.HttpError
+	if errors.As(err, &e) {
+		w.WriteHeader(e.Code)
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 
 	// Render a JSON response.
 	if err := json.NewEncoder(w).Encode(errorResponse{
