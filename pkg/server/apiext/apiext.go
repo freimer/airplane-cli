@@ -11,6 +11,7 @@ import (
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/cli/pkg/server/errorlib"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -202,7 +203,7 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 	runID := r.URL.Query().Get("id")
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return dev.LocalRun{}, errors.Errorf("run with id %s not found", runID)
+		return dev.LocalRun{}, errorlib.HttpError{Msg: "no run with ID found", Code: http.StatusNotFound}
 	}
 
 	return run, nil

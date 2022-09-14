@@ -10,6 +10,7 @@ import (
 	"github.com/airplanedev/cli/pkg/dev"
 	"github.com/airplanedev/cli/pkg/logger"
 	res "github.com/airplanedev/cli/pkg/resource"
+	"github.com/airplanedev/cli/pkg/server/errorlib"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/utils"
@@ -356,12 +357,12 @@ type ListPromptsResponse struct {
 func ListPromptHandler(ctx context.Context, state *state.State, r *http.Request) (ListPromptsResponse, error) {
 	runID := r.URL.Query().Get("runID")
 	if runID == "" {
-		return ListPromptsResponse{}, errors.New("runID is required")
+		return ListPromptsResponse{}, errorlib.HttpError{Code: http.StatusBadRequest, Msg: "run ID is required"}
 	}
 
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return ListPromptsResponse{}, errors.New("run not found")
+		return ListPromptsResponse{}, errorlib.HttpError{Code: http.StatusNotFound, Msg: "run not found"}
 	}
 
 	return ListPromptsResponse{Prompts: run.Prompts}, nil
@@ -380,10 +381,10 @@ type PromptResponse struct {
 
 func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Request, req SubmitPromptRequest) (PromptResponse, error) {
 	if req.ID == "" {
-		return PromptResponse{}, errors.New("prompt ID is required")
+		return PromptResponse{}, errorlib.HttpError{Code: http.StatusBadRequest, Msg: "prompt ID is required"}
 	}
 	if req.RunID == "" {
-		return PromptResponse{}, errors.New("run ID is required")
+		return PromptResponse{}, errorlib.HttpError{Code: http.StatusBadRequest, Msg: "run ID is required"}
 	}
 
 	userID := state.CliConfig.ParseTokenForAnalytics().UserID
@@ -398,7 +399,7 @@ func SubmitPromptHandler(ctx context.Context, state *state.State, r *http.Reques
 				return nil
 			}
 		}
-		return errors.New("prompt does not exist")
+		return errorlib.HttpError{Code: http.StatusNotFound, Msg: "prompt does not exist"}
 	})
 	if err != nil {
 		return PromptResponse{}, err
@@ -413,7 +414,7 @@ type GetDescendantsResponse struct {
 func GetDescendantsHandler(ctx context.Context, state *state.State, r *http.Request) (GetDescendantsResponse, error) {
 	runID := r.URL.Query().Get("runID")
 	if runID == "" {
-		return GetDescendantsResponse{}, errors.New("runID cannot be empty")
+		return GetDescendantsResponse{}, errorlib.HttpError{Code: http.StatusBadRequest, Msg: "runID cannot be empty"}
 	}
 	descendants := state.Runs.GetDescendants(runID)
 
@@ -456,7 +457,10 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 	runID := r.URL.Query().Get("id")
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return GetRunResponse{}, errors.Errorf("run with id %s not found", runID)
+		return GetRunResponse{}, errorlib.HttpError{
+			Code: http.StatusNotFound,
+			Msg:  fmt.Sprintf("no run with ID found: %s", runID),
+		}
 	}
 	response := GetRunResponse{Run: run}
 
@@ -464,7 +468,10 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (Ge
 		utr, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.LocalClient)
 		if err != nil {
 			logger.Error("Encountered error while getting task info: %v", err)
-			return GetRunResponse{}, errors.Errorf("error getting task %s", taskConfig.Def.GetSlug())
+			return GetRunResponse{}, errorlib.HttpError{
+				Code: http.StatusNotFound,
+				Msg:  fmt.Sprintf("error getting task %s", taskConfig.Def.GetSlug()),
+			}
 		}
 		response.Task = &libapi.Task{
 			ID:          taskConfig.Def.GetSlug(),
