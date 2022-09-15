@@ -255,7 +255,10 @@ func GetOutputsHandler(ctx context.Context, state *state.State, r *http.Request)
 	runID := r.URL.Query().Get("id")
 	run, ok := state.Runs.Get(runID)
 	if !ok {
-		return GetOutputsResponse{}, errors.Errorf("run with id %s not found", runID)
+		return GetOutputsResponse{}, errorlib.HttpError{
+			Msg:  fmt.Sprintf("run with id %s not found", runID),
+			Code: http.StatusBadRequest,
+		}
 	}
 
 	return GetOutputsResponse{
@@ -267,11 +270,17 @@ func GetOutputsHandler(ctx context.Context, state *state.State, r *http.Request)
 func GetTaskInfoHandler(ctx context.Context, state *state.State, r *http.Request) (libapi.UpdateTaskRequest, error) {
 	taskSlug := r.URL.Query().Get("slug")
 	if taskSlug == "" {
-		return libapi.UpdateTaskRequest{}, errors.New("Task slug was not supplied, request path must be of the form /v0/tasks?slug=<task_slug>")
+		return libapi.UpdateTaskRequest{}, errorlib.HttpError{
+			Msg:  "Task slug was not supplied, request path must be of the form /v0/tasks?slug=<task_slug>",
+			Code: http.StatusBadRequest,
+		}
 	}
 	taskConfig, ok := state.TaskConfigs[taskSlug]
 	if !ok {
-		return libapi.UpdateTaskRequest{}, errors.Errorf("Task with slug %s not found", taskSlug)
+		return libapi.UpdateTaskRequest{}, errorlib.HttpError{
+			Msg:  fmt.Sprintf("Task with slug %s not found", taskSlug),
+			Code: http.StatusNotFound,
+		}
 	}
 	req, err := taskConfig.Def.GetUpdateTaskRequest(ctx, state.LocalClient)
 	if err != nil {

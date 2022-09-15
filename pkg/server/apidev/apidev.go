@@ -2,6 +2,7 @@ package apidev
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/server/errorlib"
 	"github.com/airplanedev/cli/pkg/server/handlers"
 	"github.com/airplanedev/cli/pkg/server/state"
 	"github.com/airplanedev/cli/pkg/version"
@@ -143,7 +145,10 @@ func GetTaskHandler(ctx context.Context, state *state.State, r *http.Request) (d
 
 	taskConfig, ok := state.TaskConfigs[taskSlug]
 	if !ok {
-		return nil, errors.Errorf("Task with slug %s not found", taskSlug)
+		return nil, errorlib.HttpError{
+			Msg:  fmt.Sprintf("Task with slug %s not found", taskSlug),
+			Code: http.StatusNotFound,
+		}
 	}
 
 	return taskConfig.Def, nil
