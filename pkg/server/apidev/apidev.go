@@ -75,6 +75,10 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 
 	for slug, taskConfig := range state.TaskConfigs {
 		absoluteEntrypoint := taskConfig.TaskEntrypoint
+		if absoluteEntrypoint == "" {
+			//
+			absoluteEntrypoint = taskConfig.Def.GetDefnFilePath()
+		}
 		ep, err := filepath.Rel(state.Dir, absoluteEntrypoint)
 		if err != nil {
 			return ListEntrypointsHandlerResponse{}, errors.Wrap(err, "getting relative path to task")

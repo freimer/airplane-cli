@@ -29,6 +29,7 @@ import (
 	"github.com/airplanedev/lib/pkg/resources"
 	"github.com/airplanedev/lib/pkg/runtime"
 	"github.com/airplanedev/lib/pkg/utils/bufiox"
+
 	"github.com/airplanedev/lib/pkg/utils/fsx"
 	"github.com/airplanedev/ojson"
 	"github.com/joho/godotenv"
@@ -59,6 +60,7 @@ type LocalRunConfig struct {
 	EnvSlug     string
 	ParentRunID *string
 	Env         map[string]string
+	ConfigVars  map[string]string
 	AuthInfo    api.AuthInfoResponse
 	// Mapping from alias to resource
 	Resources map[string]resources.Resource
@@ -94,10 +96,7 @@ func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConf
 		return CmdConfig{cmd: cmd}, nil
 	}
 	entrypoint, err := entrypointFrom(config.File)
-	if err == definitions.ErrNoEntrypoint {
-		logger.Warning("Local execution is not supported for this task (kind=%s)", config.Kind)
-		return CmdConfig{}, nil
-	} else if err != nil {
+	if err != nil && err != definitions.ErrNoEntrypoint {
 		return CmdConfig{}, err
 	}
 
@@ -111,15 +110,20 @@ func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConf
 		return CmdConfig{}, nil
 	}
 
+	configVars := map[string]interface{}{}
+	for k, v := range config.ConfigVars {
+		configVars[k] = v
+	}
+
 	cmds, closer, err := r.PrepareRun(ctx, logger.NewStdErrLogger(logger.StdErrLoggerOpts{}), runtime.PrepareRunOptions{
 		Path:        entrypoint,
 		ParamValues: config.ParamValues,
 		KindOptions: config.KindOptions,
+		ConfigVars:  configVars,
 	})
 	if err != nil {
 		return CmdConfig{}, err
 	}
-
 	cmd := exec.CommandContext(ctx, cmds[0], cmds[1:]...)
 	return CmdConfig{
 		cmd:        cmd,
