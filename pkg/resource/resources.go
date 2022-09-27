@@ -16,6 +16,11 @@ const slackID = "res00000000zteamslack"
 const slackSlug = "team_slack"
 const slackName = "Slack"
 
+// This is not guaranteed to be the slug of the demo db, but should be in all cases where demo db creation doesn't
+// fail during team creation.
+const demoDBSlug = "demo_db"
+const demoDBName = "[Demo DB]"
+
 // GenerateAliasToResourceMap generates a mapping from alias to resource - resourceAttachments is a mapping from alias
 // to slug, and slugToResource is a mapping from slug to resource, and so we just link the two.
 func GenerateAliasToResourceMap(
@@ -98,6 +103,33 @@ func MergeRemoteResources(ctx context.Context, state *state.State) (map[string]e
 				},
 			},
 			Remote: true,
+		}
+	}
+
+	// Also add demo DB for convenience, which is required by the getting started guides.
+	if _, ok := mergedResources[demoDBSlug]; !ok {
+		// Unlike the Slack resource above, the demo db does not have a fixed resource id, and so we get the resource
+		// by slug here.
+		demoDB, err := state.CliConfig.Client.GetResource(ctx, api.GetResourceRequest{
+			Slug: demoDBSlug,
+		})
+		if err == nil {
+			mergedResources[demoDBSlug] = env.ResourceWithEnv{
+				Resource: &kinds.PostgresResource{
+					BaseResource: resources.BaseResource{
+						Kind: kinds.ResourceKindPostgres,
+						ID:   demoDB.ID,
+						Slug: demoDBSlug,
+						Name: demoDBName,
+					},
+				},
+				Remote: true,
+			}
+		} else {
+			// If demo_db resource isn't found, don't error.
+			if !errors.As(err, &libapi.ResourceMissingError{}) {
+				return nil, errors.Wrap(err, "getting demo db resource")
+			}
 		}
 	}
 

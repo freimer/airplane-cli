@@ -492,6 +492,12 @@ func (c Client) GetResource(ctx context.Context, req GetResourceRequest) (res li
 		"envSlug":              []string{req.EnvSlug},
 		"includeSensitiveData": []string{strconv.FormatBool(req.IncludeSensitiveData)},
 	}), nil, &res)
+	if err, ok := err.(Error); ok && err.Code == 404 {
+		return res, libapi.ResourceMissingError{
+			AppURL: c.AppURL().String(),
+			Slug:   req.Slug,
+		}
+	}
 	return
 }
 
