@@ -95,7 +95,8 @@ func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConf
 		return CmdConfig{cmd: cmd}, nil
 	}
 	entrypoint, err := entrypointFrom(config.File)
-	if err != nil {
+	if err != nil && err != definitions.ErrNoEntrypoint {
+		// REST tasks don't have an entrypoint, and it's not needed
 		return CmdConfig{}, err
 	}
 	r, err := runtime.Lookup(entrypoint, config.Kind)
