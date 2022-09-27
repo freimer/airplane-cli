@@ -95,10 +95,9 @@ func (l *LocalExecutor) Cmd(ctx context.Context, config LocalRunConfig) (CmdConf
 		return CmdConfig{cmd: cmd}, nil
 	}
 	entrypoint, err := entrypointFrom(config.File)
-	if err != nil && err != definitions.ErrNoEntrypoint {
+	if err != nil {
 		return CmdConfig{}, err
 	}
-
 	r, err := runtime.Lookup(entrypoint, config.Kind)
 	if err != nil {
 		return CmdConfig{}, errors.Wrapf(err, "unsupported file type: %s", filepath.Base(entrypoint))
