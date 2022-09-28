@@ -103,7 +103,7 @@ func run(ctx context.Context, cfg config) error {
 	}
 
 	req := api.RunTaskRequest{
-		TaskID:      task.ID,
+		TaskID:      &task.ID,
 		ParamValues: make(api.Values),
 		EnvSlug:     cfg.envSlug,
 	}

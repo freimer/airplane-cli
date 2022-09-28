@@ -36,6 +36,7 @@ type LocalRun struct {
 	// internal fields
 	LogStore  logs.LogBroker `json:"-"`
 	LogBroker logs.LogBroker `json:"-"`
+	Remote    bool           `json:"-"`
 }
 
 // NewLocalRun initializes a run for local dev.

@@ -124,6 +124,11 @@ func (c Client) AppURL() *url.URL {
 	return u
 }
 
+// HostURL returns the api URL, e.g. api.airstage.app
+func (c Client) HostURL() string {
+	return c.scheme() + c.host()
+}
+
 func (c Client) TokenURL() string {
 	u := c.AppURL()
 	u.Path = "/cli/login"
@@ -276,11 +281,24 @@ func (c Client) ListRuns(ctx context.Context, req ListRunsRequest) (ListRunsResp
 }
 
 // RunTask runs a task.
-func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (res RunTaskResponse, err error) {
-	err = c.do(ctx, "POST", encodeQueryString("/tasks/execute", url.Values{
+func (c Client) RunTask(ctx context.Context, req RunTaskRequest) (RunTaskResponse, error) {
+	var res RunTaskResponse
+	if err := c.do(ctx, "POST", encodeQueryString("/tasks/execute", url.Values{
 		"envSlug": []string{req.EnvSlug},
-	}), req, &res)
-	return
+	}), req, &res); err != nil {
+		if err, ok := err.(Error); ok && err.Code == 404 {
+			if req.TaskSlug != nil {
+				return res, &libapi.TaskMissingError{
+					AppURL: c.AppURL().String(),
+					Slug:   *req.TaskSlug,
+				}
+			}
+		} else {
+			return RunTaskResponse{}, err
+		}
+	}
+
+	return res, nil
 }
 
 // Watcher runs a task with the given arguments and returns a run watcher.

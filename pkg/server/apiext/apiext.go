@@ -8,6 +8,7 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/print"
 	"github.com/airplanedev/cli/pkg/resource"
@@ -67,14 +68,15 @@ func getRunIDFromToken(r *http.Request) (string, error) {
 
 // ExecuteTaskHandler handles requests to the /v0/tasks/execute endpoint
 func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request, req ExecuteTaskRequest) (dev.LocalRun, error) {
-	runID := dev.GenerateRunID()
 	run := *dev.NewLocalRun()
-
 	parentID, err := getRunIDFromToken(r)
 	if err != nil {
 		return run, err
 	}
 	run.ParentID = parentID
+
+	runID := dev.GenerateRunID()
+	run.RunID = runID
 
 	localTaskConfig, ok := state.TaskConfigs[req.Slug]
 	isBuiltin := builtins.IsBuiltinTaskSlug(req.Slug)
@@ -161,7 +163,6 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 		runConfig.Resources = resources
 		runConfig.ConfigVars = state.DevConfig.ConfigVars
 		run.Resources = resource.GenerateResourceAliasToID(resources)
-		run.RunID = runID
 		run.CreatedAt = start
 		run.ParamValues = req.ParamValues
 		run.Parameters = &parameters
@@ -190,7 +191,28 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			})
 		}()
 	} else {
-		logger.Error("task with slug %s is not registered locally", req.Slug)
+		if state.EnvID == env.LocalEnvID {
+			return dev.LocalRun{}, errors.Errorf("task with slug %s is not registered locally", req.Slug)
+		}
+
+		resp, err := state.CliConfig.Client.RunTask(ctx, api.RunTaskRequest{
+			TaskSlug:    &req.Slug,
+			ParamValues: req.ParamValues,
+			EnvSlug:     state.EnvSlug,
+		})
+		if err != nil {
+			if _, ok := err.(*libapi.TaskMissingError); ok {
+				return dev.LocalRun{}, errors.Errorf("task with slug %s is not registered locally or remotely", req.Slug)
+			} else {
+				return dev.LocalRun{}, err
+			}
+		}
+
+		run.Remote = true
+		run.RunID = resp.RunID
+		run.ParentID = "" // TODO: Support linking to remote run as well
+		state.Runs.Add(req.Slug, resp.RunID, run)
+		return run, nil
 	}
 
 	return run, nil
@@ -207,6 +229,27 @@ func GetRunHandler(ctx context.Context, state *state.State, r *http.Request) (de
 	run, ok := state.Runs.Get(runID)
 	if !ok {
 		return dev.LocalRun{}, errors.Errorf("run with id %s not found", runID)
+	}
+
+	if run.Remote {
+		resp, err := state.CliConfig.Client.GetRun(ctx, runID)
+		if err != nil {
+			return dev.LocalRun{}, errors.Wrap(err, "getting remote run")
+		}
+		remoteRun := resp.Run
+
+		return dev.LocalRun{
+			RunID:       runID,
+			Status:      remoteRun.Status,
+			CreatedAt:   remoteRun.CreatedAt,
+			CreatorID:   remoteRun.CreatorID,
+			SucceededAt: remoteRun.SucceededAt,
+			FailedAt:    remoteRun.FailedAt,
+			ParamValues: remoteRun.ParamValues,
+			TaskID:      remoteRun.TaskID,
+			TaskName:    remoteRun.TaskName,
+			Remote:      true,
+		}, nil
 	}
 
 	return run, nil
@@ -260,9 +303,19 @@ func GetOutputsHandler(ctx context.Context, state *state.State, r *http.Request)
 	if !ok {
 		return GetOutputsResponse{}, errors.Errorf("run with id %s not found", runID)
 	}
+	outputs := run.Outputs
+
+	if run.Remote {
+		resp, err := state.CliConfig.Client.GetOutputs(ctx, runID)
+		if err != nil {
+			return GetOutputsResponse{}, errors.Wrap(err, "getting remote run")
+		}
+
+		outputs = resp.Outputs
+	}
 
 	return GetOutputsResponse{
-		Output: run.Outputs,
+		Output: outputs,
 	}, nil
 }
 

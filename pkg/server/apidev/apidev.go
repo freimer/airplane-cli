@@ -16,7 +16,6 @@ import (
 	"github.com/airplanedev/cli/pkg/version/latest"
 	"github.com/airplanedev/cli/pkg/views"
 	"github.com/airplanedev/cli/pkg/views/viewdir"
-	"github.com/airplanedev/lib/pkg/deploy/taskdir/definitions"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
@@ -29,7 +28,6 @@ func AttachDevRoutes(r *mux.Router, s *state.State) {
 	r.Handle("/version", handlers.Handler(s, GetVersionHandler)).Methods("GET", "OPTIONS")
 
 	r.Handle("/list", handlers.Handler(s, ListEntrypointsHandler)).Methods("GET", "OPTIONS")
-	r.Handle("/tasks/{task_slug}", handlers.Handler(s, GetTaskHandler)).Methods("GET", "OPTIONS")
 	r.Handle("/startView/{view_slug}", handlers.Handler(s, StartViewHandler)).Methods("POST", "OPTIONS")
 	r.Handle("/logs/{run_id}", handlers.HandlerSSE(s, LogsHandler)).Methods("GET", "OPTIONS")
 }
@@ -123,22 +121,6 @@ type CreateRunResponse struct {
 
 type CreateRunRequest struct {
 	TaskSlug string `json:"taskSlug"`
-}
-
-// GetTaskHandler handles requests to the /dev/tasks/<task_slug> endpoint.
-func GetTaskHandler(ctx context.Context, state *state.State, r *http.Request) (definitions.DefinitionInterface, error) {
-	vars := mux.Vars(r)
-	taskSlug, ok := vars["task_slug"]
-	if !ok {
-		return nil, errors.Errorf("Task slug was not supplied, request path must be of the form /dev/tasks/<task_slug>")
-	}
-
-	taskConfig, ok := state.TaskConfigs[taskSlug]
-	if !ok {
-		return nil, errors.Errorf("Task with slug %s not found", taskSlug)
-	}
-
-	return taskConfig.Def, nil
 }
 
 type StartViewResponse struct {

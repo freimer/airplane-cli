@@ -145,9 +145,14 @@ func runLocalDevServer(ctx context.Context, cfg taskDevConfig) error {
 
 	if len(warnings.UnattachedResources) > 0 {
 		logger.Log(" ")
-		logger.Log(
-			"The following tasks have resource attachments that are not defined in the dev config file or remotely "+
-				"in %s. Please add them through the editor or run `airplane dev config set-resource`.", envSlug)
+		unattachedResourcesMsg := "The following tasks have resource attachments that are not defined in the dev config file"
+		if envID == env.LocalEnvID {
+			unattachedResourcesMsg += "."
+		} else {
+			unattachedResourcesMsg += fmt.Sprintf(" or remotely in %s.", logger.Bold(envSlug))
+		}
+		unattachedResourcesMsg += " Please add them through the editor or run `airplane dev config set-resource`."
+		logger.Log(unattachedResourcesMsg)
 		for _, ur := range warnings.UnattachedResources {
 			logger.Log("- %s: %s", ur.TaskName, ur.ResourceSlugs)
 		}
