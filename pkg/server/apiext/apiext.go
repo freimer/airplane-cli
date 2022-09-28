@@ -123,7 +123,10 @@ func ExecuteTaskHandler(ctx context.Context, state *state.State, r *http.Request
 			}
 
 			if !foundResource {
-				return dev.LocalRun{}, errors.Errorf("resource with id %s not found in dev config file or remotely", resourceID)
+				if resourceID == resource.SlackID {
+					return dev.LocalRun{}, errors.New("Your team has not configured Slack. Please visit https://docs.airplane.dev/platform/slack-integration#connect-to-slack to authorize Slack to perform actions in your workspace.")
+				}
+				return dev.LocalRun{}, errors.Errorf("Resource with id %s not found in dev config file or remotely.", resourceID)
 			}
 			run.IsStdAPI = true
 			stdapiReq, err := builtins.Request(req.Slug, req.ParamValues)

@@ -5,21 +5,21 @@ import (
 
 	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/dev/env"
+	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/server/state"
 	libapi "github.com/airplanedev/lib/pkg/api"
 	"github.com/airplanedev/lib/pkg/resources"
-	"github.com/airplanedev/lib/pkg/resources/kinds"
 	"github.com/pkg/errors"
 )
 
-const slackID = "res00000000zteamslack"
+const SlackID = "res00000000zteamslack"
 const slackSlug = "team_slack"
-const slackName = "Slack"
 
 // This is not guaranteed to be the slug of the demo db, but should be in all cases where demo db creation doesn't
 // fail during team creation.
 const demoDBSlug = "demo_db"
-const demoDBName = "[Demo DB]"
+
+var defaultRemoteResourceSlugs = []string{slackSlug, demoDBSlug}
 
 // GenerateAliasToResourceMap generates a mapping from alias to resource - resourceAttachments is a mapping from alias
 // to slug, and slugToResource is a mapping from slug to resource, and so we just link the two.
@@ -91,49 +91,37 @@ func MergeRemoteResources(ctx context.Context, state *state.State) (map[string]e
 		}
 	}
 
-	// Always add Slack resource for convenience since at most one can exist in a team's remote environment.
-	if _, ok := mergedResources[slackSlug]; !ok {
-		mergedResources[slackSlug] = env.ResourceWithEnv{
-			Resource: &kinds.SlackResource{
-				BaseResource: resources.BaseResource{
-					Kind: kinds.ResourceKindSlack,
-					ID:   slackID,
-					Slug: slackSlug,
-					Name: slackName,
-				},
-			},
-			Remote: true,
-		}
-	}
-
-	// Also add demo DB for convenience, which is required by the getting started guides.
-	if _, ok := mergedResources[demoDBSlug]; !ok {
-		// Unlike the Slack resource above, the demo db does not have a fixed resource id, and so we get the resource
-		// by slug here.
-		demoDB, err := state.CliConfig.Client.GetResource(ctx, api.GetResourceRequest{
-			Slug: demoDBSlug,
-		})
-		if err == nil {
-			mergedResources[demoDBSlug] = env.ResourceWithEnv{
-				Resource: &kinds.PostgresResource{
-					BaseResource: resources.BaseResource{
-						Kind: kinds.ResourceKindPostgres,
-						ID:   demoDB.ID,
-						Slug: demoDBSlug,
-						Name: demoDBName,
-					},
-				},
-				Remote: true,
-			}
-		} else {
-			// If demo_db resource isn't found, don't error.
-			if !errors.As(err, &libapi.ResourceMissingError{}) {
-				return nil, errors.Wrap(err, "getting demo db resource")
-			}
-		}
+	// Always add Slack and Demo DB resources for convenience.
+	for _, slug := range defaultRemoteResourceSlugs {
+		mergeDefaultRemoteResource(ctx, state, mergedResources, slug)
 	}
 
 	return mergedResources, nil
+}
+
+func mergeDefaultRemoteResource(
+	ctx context.Context,
+	state *state.State,
+	mergedResources map[string]env.ResourceWithEnv,
+	slug string,
+) {
+	if _, ok := mergedResources[slug]; ok {
+		return
+	}
+
+	remoteResource, err := state.CliConfig.Client.GetResource(ctx, api.GetResourceRequest{
+		Slug: slug,
+	})
+
+	if err == nil {
+		mergedResources[slug] = env.ResourceWithEnv{
+			Resource: remoteResource.ExportResource,
+			Remote:   true,
+		}
+	} else {
+		// If remote resource isn't found, don't error.
+		logger.Debug("Error getting resource: %v", err)
+	}
 }
 
 func ListRemoteResources(ctx context.Context, state *state.State) ([]libapi.Resource, error) {
