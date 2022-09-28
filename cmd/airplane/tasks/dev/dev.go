@@ -13,9 +13,11 @@ import (
 	"github.com/airplanedev/cli/cmd/airplane/tasks/dev/config"
 	viewsdev "github.com/airplanedev/cli/cmd/airplane/views/dev"
 	"github.com/airplanedev/cli/pkg/analytics"
+	"github.com/airplanedev/cli/pkg/api"
 	"github.com/airplanedev/cli/pkg/cli"
 	"github.com/airplanedev/cli/pkg/conf"
 	"github.com/airplanedev/cli/pkg/dev"
+	"github.com/airplanedev/cli/pkg/dev/env"
 	"github.com/airplanedev/cli/pkg/logger"
 	"github.com/airplanedev/cli/pkg/params"
 	"github.com/airplanedev/cli/pkg/resource"
@@ -173,16 +175,22 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	}
 
 	localExecutor := &dev.LocalExecutor{}
-	// The API client is set in the root command, and defaults to api.airplane.dev as the host for deploys, etc. For
-	// local dev, we send requests to a locally running api server, and so we override the host here.
-	cfg.root.Client.Host = fmt.Sprintf("127.0.0.1:%d", cfg.port)
+	localClient := &api.Client{
+		Host:   fmt.Sprintf("127.0.0.1:%d", cfg.port),
+		Token:  cfg.root.Client.Token,
+		Source: cfg.root.Client.Source,
+		APIKey: cfg.root.Client.APIKey,
+		TeamID: cfg.root.Client.TeamID,
+	}
 
 	apiServer, err := server.Start(server.Options{
-		CLI:       cfg.root,
-		EnvSlug:   cfg.envSlug,
-		Executor:  localExecutor,
-		Port:      cfg.port,
-		DevConfig: cfg.devConfig,
+		CLI:         cfg.root,
+		EnvID:       env.LocalEnvID,
+		EnvSlug:     env.LocalEnvID,
+		Executor:    localExecutor,
+		Port:        cfg.port,
+		DevConfig:   cfg.devConfig,
+		LocalClient: localClient,
 	})
 	if err != nil {
 		return errors.Wrap(err, "starting local dev api server")
@@ -198,16 +206,16 @@ func run(ctx context.Context, cfg taskDevConfig) error {
 	d := &discover.Discoverer{
 		TaskDiscoverers: []discover.TaskDiscoverer{
 			&discover.DefnDiscoverer{
-				Client: cfg.root.Client,
+				Client: localClient,
 				Logger: l,
 			},
 			&discover.CodeTaskDiscoverer{
-				Client: cfg.root.Client,
+				Client: localClient,
 				Logger: l,
 			},
 		},
 		EnvSlug: cfg.envSlug,
-		Client:  cfg.root.Client,
+		Client:  localClient,
 	}
 	taskConfigs, viewConfigs, err := d.Discover(ctx, filepath.Dir(cfg.fileOrDir))
 	if err != nil {
