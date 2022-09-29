@@ -123,6 +123,7 @@ func (l *LocalExecutor) Cmd(ctx context.Context, runConfig LocalRunConfig) (CmdC
 	if err != nil {
 		return CmdConfig{}, err
 	}
+
 	cmd := exec.CommandContext(ctx, cmds[0], cmds[1:]...)
 	return CmdConfig{
 		cmd:        cmd,

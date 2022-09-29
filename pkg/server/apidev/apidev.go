@@ -75,7 +75,7 @@ func ListEntrypointsHandler(ctx context.Context, state *state.State, r *http.Req
 		absoluteEntrypoint := taskConfig.TaskEntrypoint
 		if absoluteEntrypoint == "" {
 			// for YAML-only tasks like REST and SQL that don't have entrypoints
-			// use the yaml path instead
+			// display the yaml path instead
 			absoluteEntrypoint = taskConfig.Def.GetDefnFilePath()
 		}
 		ep, err := filepath.Rel(state.Dir, absoluteEntrypoint)
